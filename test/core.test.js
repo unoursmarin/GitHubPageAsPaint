@@ -1,0 +1,54 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  buildPlannerGrid,
+  cycleFutureIntensity,
+  expandScheduleEntries,
+  serializePlan,
+} from '../src/core.js';
+
+test('cycleFutureIntensity wraps after the darkest level', () => {
+  assert.equal(cycleFutureIntensity(0), 1);
+  assert.equal(cycleFutureIntensity(4), 0);
+});
+
+test('buildPlannerGrid marks dates after today as future and keeps past counts', () => {
+  const weeks = buildPlannerGrid({
+    today: new Date('2026-01-07T00:00:00Z'),
+    futureWeeks: 1,
+    pastEntries: [{ date: '2026-01-07', count: 5 }],
+  });
+  const flatDays = weeks.flatMap((week) => week.days);
+  const todayCell = flatDays.find((day) => day.date === '2026-01-07');
+  const futureCell = flatDays.find((day) => day.date === '2026-01-08');
+
+  assert.equal(todayCell.kind, 'past');
+  assert.equal(todayCell.count, 5);
+  assert.equal(futureCell.kind, 'future');
+  assert.equal(futureCell.level, 0);
+});
+
+test('serializePlan sorts days and removes empty selections', () => {
+  const plan = new Map([
+    ['2026-03-01', 0],
+    ['2026-02-14', 3],
+    ['2026-02-01', 1],
+  ]);
+
+  assert.deepEqual(serializePlan(plan), [
+    { date: '2026-02-01', count: 1 },
+    { date: '2026-02-14', count: 3 },
+  ]);
+});
+
+test('expandScheduleEntries repeats each day according to the requested count', () => {
+  assert.deepEqual(expandScheduleEntries([
+    { date: '2026-02-01', count: 2 },
+    { date: '2026-02-02', count: 1 },
+  ]), [
+    { date: '2026-02-01', sequence: 1 },
+    { date: '2026-02-01', sequence: 2 },
+    { date: '2026-02-02', sequence: 1 },
+  ]);
+});

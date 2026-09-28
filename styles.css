@@ -1,0 +1,236 @@
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #7c3aed;
+  --past-0: #f5f0ff;
+  --past-1: #ddd6fe;
+  --past-2: #c084fc;
+  --past-3: #9333ea;
+  --past-4: #581c87;
+  --future-0: #ebedf0;
+  --future-1: #9be9a8;
+  --future-2: #40c463;
+  --future-3: #30a14e;
+  --future-4: #216e39;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: linear-gradient(180deg, #0d1117 0%, #111827 100%);
+  color: var(--text);
+}
+
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.layout {
+  width: min(1200px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.panel {
+  background: rgba(22, 27, 34, 0.95);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  color: #a78bfa;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+label {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+input,
+button {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #0d1117;
+  color: var(--text);
+  font: inherit;
+  padding: 0.8rem 0.9rem;
+}
+
+button {
+  cursor: pointer;
+  background: linear-gradient(135deg, #6d28d9, #2563eb);
+  border: none;
+  font-weight: 600;
+}
+
+button:hover {
+  filter: brightness(1.05);
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.legend {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  color: var(--muted);
+}
+
+.chips {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.chip,
+.cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(27, 31, 36, 0.06);
+}
+
+.level-0.purple,
+.cell.past.level-0 { background: var(--past-0); }
+.level-1.purple,
+.cell.past.level-1 { background: var(--past-1); }
+.level-2.purple,
+.cell.past.level-2 { background: var(--past-2); }
+.level-3.purple,
+.cell.past.level-3 { background: var(--past-3); }
+.level-4.purple,
+.cell.past.level-4 { background: var(--past-4); }
+
+.level-0.green,
+.cell.future.level-0 { background: var(--future-0); }
+.level-1.green,
+.cell.future.level-1 { background: var(--future-1); }
+.level-2.green,
+.cell.future.level-2 { background: var(--future-2); }
+.level-3.green,
+.cell.future.level-3 { background: var(--future-3); }
+.level-4.green,
+.cell.future.level-4 { background: var(--future-4); }
+
+.board-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+}
+
+.status {
+  color: #a78bfa;
+  font-size: 0.95rem;
+  min-height: 1.5rem;
+}
+
+.grid-wrapper {
+  overflow-x: auto;
+  padding-top: 0.75rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  min-width: max-content;
+}
+
+.day-labels {
+  display: grid;
+  grid-template-rows: repeat(7, 14px);
+  gap: 4px;
+  padding-top: 20px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.week-columns {
+  display: grid;
+  gap: 6px;
+}
+
+.month-row,
+.week-row {
+  display: grid;
+  gap: 4px;
+  grid-auto-flow: column;
+  grid-auto-columns: 12px;
+}
+
+.month-row {
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-bottom: 4px;
+}
+
+.week {
+  display: grid;
+  gap: 4px;
+}
+
+.cell {
+  padding: 0;
+}
+
+.cell.future {
+  cursor: pointer;
+}
+
+.cell.future:focus-visible,
+.cell.future:hover {
+  outline: 2px solid #bfdbfe;
+  outline-offset: 1px;
+}
+
+.hint {
+  color: var(--muted);
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .board-header {
+    flex-direction: column;
+  }
+}
