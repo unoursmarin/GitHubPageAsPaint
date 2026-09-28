@@ -135,7 +135,7 @@ async function getContributionEntries({ username, token, plannedEntries }) {
   });
 
   if (payload.errors?.length) {
-    throw new Error(`Unable to load contributions for ${username}: ${payload.errors.map((error) => error.message).join('; ')}`);
+    throw new Error(`Unable to load contributions for ${username}.`);
   }
 
   if (!payload.data?.user) {
