@@ -62,12 +62,23 @@ async function handleContributionRequest(url, response) {
 }
 
 function parseContributionHtml(html) {
-  const pattern =
-    /<td[^>]*data-date="([^"]+)"[^>]*id="([^"]+)"[^>]*data-level="(\d)"[^>]*><\/td>\s*<tool-tip[^>]*for="\2"[^>]*>([^<]+)<\/tool-tip>/g;
+  const tooltipById = new Map(
+    [...html.matchAll(/<tool-tip[^>]*for="([^"]+)"[^>]*>([^<]+)<\/tool-tip>/g)].map((match) => [
+      match[1],
+      match[2],
+    ]),
+  );
+  const titleById = new Map(
+    [...html.matchAll(/<(?:rect|td)[^>]*id="([^"]+)"[^>]*>[\s\S]*?<title>([^<]+)<\/title>[\s\S]*?<\/(?:rect|td)>/g)].map(
+      (match) => [match[1], match[2]],
+    ),
+  );
+  const pattern = /<(?:rect|td)[^>]*data-date="([^"]+)"[^>]*id="([^"]+)"[^>]*data-level="(\d)"[^>]*>/g;
   const entries = [];
 
   for (const match of html.matchAll(pattern)) {
-    const [, date, , levelText, tooltip] = match;
+    const [, date, id, levelText] = match;
+    const tooltip = tooltipById.get(id) || titleById.get(id) || '';
     const countMatch = tooltip.match(/([\d,]+)\s+contribution/i);
     const count = countMatch ? Number(countMatch[1].replaceAll(',', '')) : 0;
 
@@ -93,7 +104,18 @@ async function serveStatic(pathname, response) {
   }
 
   const extension = path.extname(resolvedPath);
-  const content = await fs.readFile(resolvedPath);
+  let content;
+
+  try {
+    content = await fs.readFile(resolvedPath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      sendJson(response, 404, { error: 'Not found' });
+      return;
+    }
+    throw error;
+  }
+
   response.writeHead(200, {
     'Content-Type': contentTypes[extension] || 'application/octet-stream',
   });

@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import { expandScheduleEntries } from '../src/core.js';
+import { buildCommitDate } from '../src/publisher.js';
 
 const args = parseArgs(process.argv.slice(2));
 
@@ -74,12 +75,6 @@ function parseArgs(values) {
     accumulator[value.slice(2)] = all[index + 1]?.startsWith('--') ? true : all[index + 1];
     return accumulator;
   }, {});
-}
-
-function buildCommitDate(date, sequence) {
-  const commitDate = new Date(`${date}T09:00:00Z`);
-  commitDate.setUTCMinutes(commitDate.getUTCMinutes() + (sequence - 1) * 7);
-  return commitDate.toISOString().replace('.000Z', 'Z');
 }
 
 function randomText() {
@@ -178,6 +173,7 @@ async function githubRequest(url, { method = 'GET', token, body, operation = 'ca
       Authorization: 'Bearer ' + token,
       'Content-Type': 'application/json',
       'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'GitHubPageAsPaint/1.0',
     },
     body: body ? JSON.stringify(body) : undefined,
   });

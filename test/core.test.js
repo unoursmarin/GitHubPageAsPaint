@@ -8,6 +8,7 @@ import {
   expandScheduleEntries,
   serializePlan,
 } from '../src/core.js';
+import { buildCommitDate } from '../src/publisher.js';
 
 test('cycleFutureIntensity wraps after the darkest level', () => {
   assert.equal(cycleFutureIntensity(0), 1);
@@ -76,4 +77,10 @@ test('expandScheduleEntries repeats each day according to the requested count', 
     { date: '2026-02-01', sequence: 2 },
     { date: '2026-02-02', sequence: 1 },
   ]);
+});
+
+test('buildCommitDate starts at 09:00Z and increments by seven minutes', () => {
+  assert.equal(buildCommitDate('2026-02-14', 1), '2026-02-14T09:00:00Z');
+  assert.equal(buildCommitDate('2026-02-14', 2), '2026-02-14T09:07:00Z');
+  assert.equal(buildCommitDate('2026-02-14', 10), '2026-02-14T10:03:00Z');
 });

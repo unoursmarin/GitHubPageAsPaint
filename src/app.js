@@ -129,7 +129,7 @@ function renderGrid(weeks) {
       button.setAttribute(
         'aria-label',
         day.isFuture
-          ? `${day.date}, planned commits: ${plan.get(day.date) ?? 0}`
+          ? futureStatusLabel(day.date, plan.get(day.date) ?? 0)
           : `${day.date}, ${day.count} past contribution${day.count === 1 ? '' : 's'}`,
       );
       button.title = button.getAttribute('aria-label');
@@ -143,9 +143,13 @@ function renderGrid(weeks) {
             plan.set(day.date, nextLevel);
           }
           button.className = `cell future level-${nextLevel}`;
-          button.setAttribute('aria-label', `${day.date}, planned commits: ${nextLevel}`);
+          button.setAttribute('aria-label', futureStatusLabel(day.date, nextLevel));
           button.title = button.getAttribute('aria-label');
-          setStatus(`${day.date} now has ${nextLevel} planned commit${nextLevel === 1 ? '' : 's'}.`);
+          setStatus(
+            nextLevel === 0
+              ? `${day.date} now has no planned commits.`
+              : `${day.date} now has ${nextLevel} planned commit${nextLevel === 1 ? '' : 's'}.`,
+          );
         });
       } else {
         button.disabled = true;
@@ -164,4 +168,8 @@ function renderGrid(weeks) {
 
 function setStatus(message) {
   status.textContent = message;
+}
+
+function futureStatusLabel(date, count) {
+  return count === 0 ? `${date}, no planned commits` : `${date}, planned commits: ${count}`;
 }
