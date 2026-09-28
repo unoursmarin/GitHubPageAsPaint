@@ -42,6 +42,8 @@ form.addEventListener('submit', async (event) => {
     summary.textContent = `${plannerState.username}'s last 53 weeks are shown in purple, with ${futureWeeks} paintable weeks ahead in green.`;
     setStatus('Grid loaded. Click future cells to set 1–4 planned commits.');
   } catch (error) {
+    renderGrid(buildPlannerGrid({ futureWeeks }));
+    summary.textContent = 'Load your profile to see the last 53 weeks and paint the weeks ahead.';
     setStatus(`Unable to load contributions: ${error.message}`);
   }
 });

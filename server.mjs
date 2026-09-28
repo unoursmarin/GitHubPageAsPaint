@@ -18,13 +18,13 @@ const server = http.createServer(async (request, response) => {
   try {
     const url = new URL(request.url || '/', `http://${request.headers.host}`);
 
-    if (url.pathname === '/api/contributions') {
-      await handleContributionRequest(url, response);
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      sendJson(response, 405, { error: 'Method not allowed' });
       return;
     }
 
-    if (request.method !== 'GET' && request.method !== 'HEAD') {
-      sendJson(response, 405, { error: 'Method not allowed' });
+    if (url.pathname === '/api/contributions') {
+      await handleContributionRequest(url, response);
       return;
     }
 
@@ -85,8 +85,9 @@ async function serveStatic(pathname, response) {
   const requestedPath = pathname === '/' ? '/index.html' : pathname;
   const safePath = requestedPath.replace(/^\/+/, '');
   const resolvedPath = path.resolve(root, safePath);
+  const relativePath = path.relative(root, resolvedPath);
 
-  if (!resolvedPath.startsWith(root)) {
+  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
     sendJson(response, 403, { error: 'Forbidden' });
     return;
   }
