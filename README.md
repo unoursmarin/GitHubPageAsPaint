@@ -4,7 +4,7 @@ Paint a GitHub-style contribution grid with your real history and plan the weeks
 
 ## What it does
 
-- loads the last 53 weeks of a user's GitHub contributions in a purple heatmap
+- loads the last 53 weeks of a user's GitHub contributions in a neutral grey heatmap
 - renders the calendar with `react-activity-calendar`
 - lets you click future cells to cycle from 0 to 4 planned commits in GitHub green
 - exports a `schedule.json` file describing the future drawing

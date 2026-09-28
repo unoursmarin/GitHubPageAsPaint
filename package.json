@@ -4,7 +4,7 @@
   "description": "Paint future GitHub contributions and automate scheduled text commits.",
   "type": "module",
   "scripts": {
-    "build:client": "esbuild src/app.js --bundle --format=esm --loader:.js=jsx --outfile=dist/app.js",
+    "build:client": "esbuild src/app.js --bundle --format=esm --loader:.js=jsx --loader:.woff2=file --loader:.woff=file --outfile=dist/app.js",
     "serve": "npm run build:client && node ./server.mjs",
     "test": "node --test"
   },
@@ -16,6 +16,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
     "react": "^19.3.0",
     "react-activity-calendar": "^3.2.1",
     "react-dom": "^19.3.0"

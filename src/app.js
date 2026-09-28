@@ -2,6 +2,8 @@ import React, { cloneElement, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ActivityCalendar } from 'react-activity-calendar';
 import 'react-activity-calendar/tooltips.css';
+import '@fontsource-variable/geist';
+import '@fontsource-variable/geist-mono';
 
 import {
   HISTORICAL_WEEKS,
@@ -10,8 +12,10 @@ import {
   cycleFutureIntensity,
 } from './core.js';
 
-const PAST_COLORS = ['#f5f0ff', '#ddd6fe', '#c084fc', '#9333ea', '#581c87'];
-const FUTURE_COLORS = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
+// Fills resolve through CSS custom properties so the grid follows the page theme.
+const LEVELS = [0, 1, 2, 3, 4];
+const PAST_COLORS = LEVELS.map((level) => `var(--past-${level})`);
+const FUTURE_COLORS = LEVELS.map((level) => `var(--future-${level})`);
 const EMPTY_PLANNER_STATE = {
   username: '',
   owner: '',
@@ -31,8 +35,12 @@ function App() {
   const [plannerState, setPlannerState] = useState(EMPTY_PLANNER_STATE);
   const [pastEntries, setPastEntries] = useState([]);
   const [plan, setPlan] = useState(() => new Map());
-  const [status, setStatus] = useState('');
+  const [status, setStatusState] = useState({ text: '', tone: 'neutral' });
   const [loading, setLoading] = useState(false);
+
+  function setStatus(text, tone = 'neutral') {
+    setStatusState({ text, tone });
+  }
 
   const futureWeeks = Number(formState.futureWeeks || 20);
   const weeks = useMemo(
@@ -48,7 +56,7 @@ function App() {
     [plan, weeks],
   );
   const summary = plannerState.username
-    ? `${plannerState.username}'s last ${HISTORICAL_WEEKS} weeks are shown in purple, with a ${futureWeeks}-week paintable range in green.`
+    ? `${plannerState.username}'s last ${HISTORICAL_WEEKS} weeks in grey, followed by ${futureWeeks} paintable weeks.`
     : `Load your profile to see the last ${HISTORICAL_WEEKS} weeks and paint the weeks ahead.`;
 
   async function handleSubmit(event) {
@@ -69,11 +77,11 @@ function App() {
       const entries = await fetchContributionCalendar(nextPlannerState.username);
       setPastEntries(entries);
       setPlannerState(nextPlannerState);
-      setStatus('Grid loaded. Click future cells to set 1–4 planned commits.');
+      setStatus('Grid loaded. Click future cells to plan 1 to 4 commits.', 'success');
     } catch (error) {
       setPastEntries([]);
       setPlannerState(EMPTY_PLANNER_STATE);
-      setStatus(`Unable to load contributions: ${error.message}`);
+      setStatus(`Unable to load contributions: ${error.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -81,7 +89,7 @@ function App() {
 
   function handleDownload() {
     if (!plannerState.username || !plannerState.owner || !plannerState.repo) {
-      setStatus('Load the grid first so the schedule includes the repository details.');
+      setStatus('Load the grid first so the schedule includes the repository details.', 'error');
       return;
     }
 
@@ -100,7 +108,7 @@ function App() {
     link.download = 'schedule.json';
     link.click();
     URL.revokeObjectURL(url);
-    setStatus(`Downloaded schedule with ${payload.entries.length} planned day(s).`);
+    setStatus(`Downloaded schedule with ${payload.entries.length} planned day(s).`, 'success');
   }
 
   function handleInputChange(event) {
@@ -127,78 +135,60 @@ function App() {
 
   return (
     <main className="layout">
-      <section className="panel intro">
-        <p className="eyebrow">GitHubPageAsPaint</p>
+      <header className="intro">
+        <span className="wordmark">GitHubPageAsPaint</span>
         <h1>Paint your next contribution map</h1>
-        <p>
-          Load your GitHub contribution history in purple, paint future days in green,
-          and export a schedule that can be published later with your personal access token.
+        <p className="lede">
+          Load your contribution history, paint the days ahead, and export a schedule
+          you can publish later with a personal access token.
         </p>
-      </section>
+      </header>
 
-      <section className="panel controls">
+      <section className="section controls" aria-labelledby="controls-heading">
+        <div className="section-head">
+          <h2 id="controls-heading">Profile and repository</h2>
+        </div>
         <form className="controls-grid" onSubmit={handleSubmit}>
           <label>
             GitHub username
-            <input name="username" type="text" placeholder="octocat" required value={formState.username} onChange={handleInputChange} />
+            <input name="username" type="text" placeholder="octocat" autoComplete="off" required value={formState.username} onChange={handleInputChange} />
           </label>
           <label>
             Repository owner
-            <input name="owner" type="text" placeholder="octocat" required value={formState.owner} onChange={handleInputChange} />
+            <input name="owner" type="text" placeholder="octocat" autoComplete="off" required value={formState.owner} onChange={handleInputChange} />
           </label>
           <label>
             Repository name
-            <input name="repo" type="text" placeholder="portfolio-drawings" required value={formState.repo} onChange={handleInputChange} />
+            <input name="repo" type="text" placeholder="portfolio-drawings" autoComplete="off" required value={formState.repo} onChange={handleInputChange} />
           </label>
           <label>
             Branch
-            <input name="branch" type="text" value={formState.branch} onChange={handleInputChange} />
+            <input name="branch" type="text" autoComplete="off" value={formState.branch} onChange={handleInputChange} />
           </label>
           <label>
-            Future weeks to paint
+            Future weeks
             <input name="futureWeeks" type="number" min="4" max="52" value={formState.futureWeeks} onChange={handleInputChange} />
           </label>
           <div className="actions">
-            <button type="submit" disabled={loading}>{loading ? 'Loading…' : 'Load contribution grid'}</button>
-            <button id="download-plan" type="button" onClick={handleDownload}>Download schedule</button>
+            <button type="submit" disabled={loading}>{loading ? 'Loading…' : 'Load grid'}</button>
+            <button id="download-plan" className="secondary" type="button" onClick={handleDownload}>Download schedule</button>
           </div>
         </form>
-
-        <div className="legend">
-          <span>Past contributions</span>
-          <div className="chips purple-scale" aria-hidden="true">
-            <span className="chip level-0 purple"></span>
-            <span className="chip level-1 purple"></span>
-            <span className="chip level-2 purple"></span>
-            <span className="chip level-3 purple"></span>
-            <span className="chip level-4 purple"></span>
-          </div>
-          <span>Future plan</span>
-          <div className="chips green-scale" aria-hidden="true">
-            <span className="chip level-0 green"></span>
-            <span className="chip level-1 green"></span>
-            <span className="chip level-2 green"></span>
-            <span className="chip level-3 green"></span>
-            <span className="chip level-4 green"></span>
-          </div>
-          <p className="hint">Click a future cell several times to cycle the intensity and planned commit count.</p>
-        </div>
       </section>
 
-      <section className="panel board">
-        <div className="board-header">
+      <section className="section board" aria-labelledby="board-heading">
+        <div className="section-head">
           <div>
-            <h2>Contribution planner</h2>
+            <h2 id="board-heading">Contribution planner</h2>
             <p id="summary">{summary}</p>
           </div>
-          <div id="status" className="status" role="status" aria-live="polite">{status}</div>
+          <div id="status" className="status" data-tone={status.tone} role="status" aria-live="polite">{status.text}</div>
         </div>
         <div className="grid-wrapper">
           <ActivityCalendar
-            blockMargin={4}
-            blockRadius={3}
-            blockSize={12}
-            colorScheme="dark"
+            blockMargin={3}
+            blockRadius={2}
+            blockSize={11}
             data={calendarData}
             fontSize={12}
             labels={{ totalCount: '{{count}} activities in {{year}}' }}
@@ -215,7 +205,6 @@ function App() {
                 'aria-label': label,
                 'aria-pressed': isFuture ? String(activity.count > 0) : undefined,
                 'data-future': isFuture ? 'true' : 'false',
-                fill: color,
                 onClick: isFuture ? () => toggleFutureDate(activity.date) : undefined,
                 onKeyDown: isFuture
                   ? (event) => {
@@ -228,6 +217,7 @@ function App() {
                 role: isFuture ? 'button' : 'img',
                 style: {
                   ...block.props.style,
+                  fill: color,
                   cursor: isFuture ? 'pointer' : 'default',
                 },
                 tabIndex: isFuture ? 0 : -1,
@@ -247,22 +237,39 @@ function App() {
             }}
           />
         </div>
+
+        <div className="legend">
+          <span className="legend-item">
+            Past
+            <span className="chips" aria-hidden="true">
+              {LEVELS.map((level) => <span key={level} className={`chip past level-${level}`}></span>)}
+            </span>
+          </span>
+          <span className="legend-item">
+            Planned
+            <span className="chips" aria-hidden="true">
+              {LEVELS.map((level) => <span key={level} className={`chip future level-${level}`}></span>)}
+            </span>
+          </span>
+          <span className="hint">Click a future cell again to raise its commit count.</span>
+        </div>
       </section>
 
-      <section className="panel automation">
-        <h2>Automation</h2>
-        <ol>
-          <li>Load the grid and paint the future dates you want.</li>
-          <li>Download the generated <code>schedule.json</code>.</li>
+      <section className="section automation" aria-labelledby="automation-heading">
+        <div className="section-head">
+          <h2 id="automation-heading">Publish the plan</h2>
+        </div>
+        <ol className="steps">
+          <li><span>Load the grid and paint the future dates you want.</span></li>
+          <li><span>Download the generated <code>schedule.json</code>.</span></li>
           <li>
-            Run
-            <code>node ./scripts/publish-schedule.mjs --schedule ./schedule.json --owner &lt;owner&gt; --repo &lt;repo&gt; --branch &lt;branch&gt; --token &lt;token&gt;</code>
-            {' '}to publish random text commits for the selected dates.
+            <span>Run the publisher to create text commits for the selected dates:</span>
+            <pre><code>node ./scripts/publish-schedule.mjs --schedule ./schedule.json --owner &lt;owner&gt; --repo &lt;repo&gt; --branch &lt;branch&gt; --token &lt;token&gt;</code></pre>
           </li>
         </ol>
-        <p className="hint">
-          The script creates tiny text files with dated commits through the GitHub API.
-          Future-dated commits depend on GitHub’s contribution rules for the target account.
+        <p className="note">
+          The script creates tiny dated text files through the GitHub API. Future-dated commits
+          depend on GitHub’s contribution rules for the target account.
         </p>
       </section>
     </main>
