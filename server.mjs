@@ -45,7 +45,11 @@ async function handleContributionRequest(url, response) {
     return;
   }
 
-  const upstream = await fetch(`https://github.com/users/${encodeURIComponent(username)}/contributions`);
+  const upstream = await fetch(`https://github.com/users/${encodeURIComponent(username)}/contributions`, {
+    headers: {
+      'User-Agent': 'GitHubPageAsPaint/1.0',
+    },
+  });
   if (!upstream.ok) {
     sendJson(response, upstream.status, { error: `GitHub responded with ${upstream.status}` });
     return;
@@ -118,6 +122,7 @@ async function serveStatic(pathname, response) {
 
   response.writeHead(200, {
     'Content-Type': contentTypes[extension] || 'application/octet-stream',
+    'X-Content-Type-Options': 'nosniff',
   });
   response.end(content);
 }
@@ -125,6 +130,7 @@ async function serveStatic(pathname, response) {
 function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
+    'X-Content-Type-Options': 'nosniff',
   });
   response.end(JSON.stringify(payload));
 }

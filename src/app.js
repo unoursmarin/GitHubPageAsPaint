@@ -1,5 +1,6 @@
 import {
   DAY_LABELS,
+  HISTORICAL_WEEKS,
   buildPlannerGrid,
   buildSchedulePayload,
   cycleFutureIntensity,
@@ -38,13 +39,12 @@ form.addEventListener('submit', async (event) => {
   try {
     const pastEntries = await fetchContributionCalendar(plannerState.username);
     const weeks = buildPlannerGrid({ futureWeeks, pastEntries });
-    const historicWeeks = weeks.length - futureWeeks;
     renderGrid(weeks);
-    summary.textContent = `${plannerState.username}'s last ${historicWeeks} weeks are shown in purple, with ${futureWeeks} paintable weeks ahead in green.`;
+    summary.textContent = `${plannerState.username}'s last ${HISTORICAL_WEEKS} weeks are shown in purple, with a ${futureWeeks}-week paintable range in green.`;
     setStatus('Grid loaded. Click future cells to set 1–4 planned commits.');
   } catch (error) {
     renderGrid(buildPlannerGrid({ futureWeeks }));
-    summary.textContent = 'Load your profile to see the last 53 weeks and paint the weeks ahead.';
+    summary.textContent = `Load your profile to see the last ${HISTORICAL_WEEKS} weeks and paint the weeks ahead.`;
     setStatus(`Unable to load contributions: ${error.message}`);
   }
 });
@@ -75,12 +75,11 @@ downloadButton.addEventListener('click', () => {
 
 async function fetchContributionCalendar(username) {
   const response = await fetch(`/api/contributions?username=${encodeURIComponent(username)}`);
+  const payload = await response.json();
 
   if (!response.ok) {
-    throw new Error(`Contribution API responded with ${response.status}`);
+    throw new Error(payload.error || `Contribution API responded with ${response.status}`);
   }
-
-  const payload = await response.json();
   if (payload.error) {
     throw new Error(payload.error);
   }

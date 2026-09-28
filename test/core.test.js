@@ -6,6 +6,7 @@ import {
   buildSchedulePayload,
   cycleFutureIntensity,
   expandScheduleEntries,
+  HISTORICAL_WEEKS,
   serializePlan,
 } from '../src/core.js';
 import { buildCommitDate } from '../src/publisher.js';
@@ -29,6 +30,17 @@ test('buildPlannerGrid marks dates after today as future and keeps past counts',
   assert.equal(todayCell.count, 5);
   assert.equal(futureCell.kind, 'future');
   assert.equal(futureCell.level, 0);
+});
+
+test('buildPlannerGrid uses futureWeeks as the number of week columns with future days', () => {
+  const weeks = buildPlannerGrid({
+    today: new Date('2026-01-07T00:00:00Z'),
+    futureWeeks: 2,
+  });
+  const futureWeekColumns = weeks.filter((week) => week.days.some((day) => day.isFuture));
+
+  assert.equal(weeks.length, HISTORICAL_WEEKS + 1);
+  assert.equal(futureWeekColumns.length, 2);
 });
 
 test('serializePlan sorts days and removes empty selections', () => {

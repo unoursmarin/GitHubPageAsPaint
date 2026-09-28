@@ -49,10 +49,9 @@ for (const [index, entry] of entries.entries()) {
     path,
     blobSha,
   });
-  headSha = await createCommitAndAdvanceRef({
+  headSha = await createCommit({
     owner,
     repo,
-    branch,
     token: args.token,
     parentSha: headSha,
     treeSha: nextTreeSha,
@@ -67,12 +66,21 @@ for (const [index, entry] of entries.entries()) {
   console.log(`Created commit ${index + 1}/${entries.length} for ${entry.date} (${path})`);
 }
 
+await updateRef({
+  owner,
+  repo,
+  branch,
+  token: args.token,
+  sha: headSha,
+});
+
 console.log(`Published ${entries.length} commit(s) to ${owner}/${repo}@${branch}.`);
 
 function parseArgs(values) {
   return values.reduce((accumulator, value, index, all) => {
     if (!value.startsWith('--')) return accumulator;
-    accumulator[value.slice(2)] = all[index + 1]?.startsWith('--') ? true : all[index + 1];
+    const next = all[index + 1];
+    accumulator[value.slice(2)] = !next || next.startsWith('--') ? true : next;
     return accumulator;
   }, {});
 }
@@ -130,7 +138,7 @@ async function createTree({ owner, repo, token, baseTree, path, blobSha }) {
   return payload.sha;
 }
 
-async function createCommitAndAdvanceRef({ owner, repo, branch, token, parentSha, treeSha, commitDate, authorName, authorEmail, index, total, path }) {
+async function createCommit({ owner, repo, token, parentSha, treeSha, commitDate, authorName, authorEmail, index, total, path }) {
   const payload = await githubRequest(`https://api.github.com/repos/${owner}/${repo}/git/commits`, {
     method: 'POST',
     operation: 'create commit',
@@ -152,17 +160,19 @@ async function createCommitAndAdvanceRef({ owner, repo, branch, token, parentSha
     },
   });
 
+  return payload.sha;
+}
+
+async function updateRef({ owner, repo, branch, token, sha }) {
   await githubRequest(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
     method: 'PATCH',
     operation: 'advance branch ref',
     token,
     body: {
-      sha: payload.sha,
+      sha,
       force: false,
     },
   });
-
-  return payload.sha;
 }
 
 async function githubRequest(url, { method = 'GET', token, body, operation = 'call GitHub API' } = {}) {

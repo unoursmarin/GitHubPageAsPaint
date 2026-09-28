@@ -1,5 +1,6 @@
 export const FUTURE_LEVEL_COLORS = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
 export const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+export const HISTORICAL_WEEKS = 53;
 
 export function toIsoDate(date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
@@ -39,8 +40,8 @@ export function purpleLevelForCount(count, maxCount) {
 
 export function buildPlannerGrid({ today = new Date(), futureWeeks = 20, pastEntries = [] } = {}) {
   const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-  const start = addDays(startOfWeek(todayUtc), -52 * 7);
-  const end = addDays(startOfWeek(todayUtc), futureWeeks * 7 + 6);
+  const start = addDays(startOfWeek(todayUtc), -(HISTORICAL_WEEKS - 1) * 7);
+  const end = addDays(startOfWeek(todayUtc), futureWeeks * 7 - 1);
   const pastMap = new Map(pastEntries.map((entry) => [entry.date, entry]));
   const maxCount = Math.max(0, ...pastEntries.map((entry) => entry.count || 0));
   const weeks = [];
