@@ -96,9 +96,9 @@ async function serveStatic(pathname, response) {
   const requestedPath = pathname === '/' ? '/index.html' : pathname;
   const safePath = requestedPath.replace(/^\/+/, '');
   const resolvedPath = path.resolve(root, safePath);
-  const relativePath = path.relative(root, resolvedPath);
+  const normalizedRoot = root.endsWith(path.sep) ? root : `${root}${path.sep}`;
 
-  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+  if (resolvedPath !== root && !resolvedPath.startsWith(normalizedRoot)) {
     sendJson(response, 403, { error: 'Forbidden' });
     return;
   }

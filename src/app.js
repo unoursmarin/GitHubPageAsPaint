@@ -38,8 +38,9 @@ form.addEventListener('submit', async (event) => {
   try {
     const pastEntries = await fetchContributionCalendar(plannerState.username);
     const weeks = buildPlannerGrid({ futureWeeks, pastEntries });
+    const historicWeeks = weeks.length - futureWeeks;
     renderGrid(weeks);
-    summary.textContent = `${plannerState.username}'s last 53 weeks are shown in purple, with ${futureWeeks} paintable weeks ahead in green.`;
+    summary.textContent = `${plannerState.username}'s last ${historicWeeks} weeks are shown in purple, with ${futureWeeks} paintable weeks ahead in green.`;
     setStatus('Grid loaded. Click future cells to set 1–4 planned commits.');
   } catch (error) {
     renderGrid(buildPlannerGrid({ futureWeeks }));
@@ -126,6 +127,9 @@ function renderGrid(weeks) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `cell ${day.kind} level-${day.level}`;
+      if (day.isFuture) {
+        button.setAttribute('aria-pressed', String((plan.get(day.date) ?? 0) > 0));
+      }
       button.setAttribute(
         'aria-label',
         day.isFuture
@@ -143,6 +147,7 @@ function renderGrid(weeks) {
             plan.set(day.date, nextLevel);
           }
           button.className = `cell future level-${nextLevel}`;
+          button.setAttribute('aria-pressed', String(nextLevel > 0));
           button.setAttribute('aria-label', futureStatusLabel(day.date, nextLevel));
           button.title = button.getAttribute('aria-label');
           setStatus(
