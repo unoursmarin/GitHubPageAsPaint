@@ -25,7 +25,7 @@ if (!username) {
   process.exit(1);
 }
 
-const authorName = args['author-name'] || schedule.username || owner;
+const authorName = args['author-name'] || owner;
 const authorEmail = args['author-email'] || `${owner}@users.noreply.github.com`;
 const plannedEntries = schedule.entries || [];
 
