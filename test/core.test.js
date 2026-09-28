@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   buildPlannerGrid,
+  buildSchedulePayload,
   cycleFutureIntensity,
   expandScheduleEntries,
   serializePlan,
@@ -37,6 +38,30 @@ test('serializePlan sorts days and removes empty selections', () => {
   ]);
 
   assert.deepEqual(serializePlan(plan), [
+    { date: '2026-02-01', count: 1 },
+    { date: '2026-02-14', count: 3 },
+  ]);
+});
+
+test('buildSchedulePayload keeps repository metadata and serialized entries', () => {
+  const payload = buildSchedulePayload({
+    username: 'octocat',
+    owner: 'octocat',
+    repo: 'paint',
+    branch: 'main',
+    plan: new Map([
+      ['2026-02-14', 3],
+      ['2026-02-01', 1],
+    ]),
+  });
+
+  assert.equal(payload.username, 'octocat');
+  assert.deepEqual(payload.repository, {
+    owner: 'octocat',
+    repo: 'paint',
+    branch: 'main',
+  });
+  assert.deepEqual(payload.entries, [
     { date: '2026-02-01', count: 1 },
     { date: '2026-02-14', count: 3 },
   ]);

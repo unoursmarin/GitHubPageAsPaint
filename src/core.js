@@ -59,7 +59,7 @@ export function buildPlannerGrid({ today = new Date(), futureWeeks = 20, pastEnt
         month: monthLabel(date),
         isFuture,
         count: past?.count ?? 0,
-        level: isFuture ? 0 : purpleLevelForCount(past?.count ?? 0, maxCount),
+        level: isFuture ? 0 : past?.level ?? purpleLevelForCount(past?.count ?? 0, maxCount),
         kind: isFuture ? 'future' : 'past',
       });
     }

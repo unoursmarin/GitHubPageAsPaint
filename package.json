@@ -4,7 +4,7 @@
   "description": "Paint future GitHub contributions and automate scheduled text commits.",
   "type": "module",
   "scripts": {
-    "serve": "python3 -m http.server 4173",
+    "serve": "node ./server.mjs",
     "test": "node --test"
   },
   "keywords": [

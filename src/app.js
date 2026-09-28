@@ -31,16 +31,12 @@ form.addEventListener('submit', async (event) => {
     branch: String(data.get('branch') || 'main').trim() || 'main',
   };
 
-  const token = String(data.get('token') || '').trim();
   const futureWeeks = Number(data.get('futureWeeks') || 20);
   plan.clear();
   setStatus('Loading contribution history…');
 
   try {
-    const pastEntries = await fetchContributionCalendar({
-      username: plannerState.username,
-      token,
-    });
+    const pastEntries = await fetchContributionCalendar(plannerState.username);
     const weeks = buildPlannerGrid({ futureWeeks, pastEntries });
     renderGrid(weeks);
     summary.textContent = `${plannerState.username}'s last 53 weeks are shown in purple, with ${futureWeeks} paintable weeks ahead in green.`;
@@ -74,49 +70,24 @@ downloadButton.addEventListener('click', () => {
   setStatus(`Downloaded schedule with ${payload.entries.length} planned day(s).`);
 });
 
-async function fetchContributionCalendar({ username, token }) {
-  const response = await fetch('https://api.github.com/graphql', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `bearer ${token}`,
-    },
-    body: JSON.stringify({
-      query: `query ContributionCalendar($login: String!) {
-        user(login: $login) {
-          contributionsCollection {
-            contributionCalendar {
-              weeks {
-                contributionDays {
-                  contributionCount
-                  date
-                }
-              }
-            }
-          }
-        }
-      }`,
-      variables: { login: username },
-    }),
-  });
+async function fetchContributionCalendar(username) {
+  const response = await fetch(`/api/contributions?username=${encodeURIComponent(username)}`);
 
   if (!response.ok) {
-    throw new Error(`GitHub API responded with ${response.status}`);
+    throw new Error(`Contribution API responded with ${response.status}`);
   }
 
   const payload = await response.json();
-  if (payload.errors?.length) {
-    throw new Error(payload.errors[0].message);
+  if (payload.error) {
+    throw new Error(payload.error);
   }
-  const days = payload?.data?.user?.contributionsCollection?.contributionCalendar?.weeks?.flatMap(
-    (week) => week.contributionDays,
-  );
+  const days = payload.entries;
 
   if (!days?.length) {
-    throw new Error('No contribution data returned. Check the token and username.');
+    throw new Error('No contribution data returned. Check the username.');
   }
 
-  return days.map((day) => ({ date: day.date, count: day.contributionCount }));
+  return days;
 }
 
 function renderGrid(weeks) {
@@ -164,7 +135,11 @@ function renderGrid(weeks) {
       if (day.isFuture) {
         button.addEventListener('click', () => {
           const nextLevel = cycleFutureIntensity(plan.get(day.date) ?? 0);
-          plan.set(day.date, nextLevel);
+          if (nextLevel === 0) {
+            plan.delete(day.date);
+          } else {
+            plan.set(day.date, nextLevel);
+          }
           button.className = `cell future level-${nextLevel}`;
           button.setAttribute('aria-label', `${day.date}, planned commits: ${nextLevel}`);
           button.title = button.getAttribute('aria-label');

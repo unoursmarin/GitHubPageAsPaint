@@ -4,15 +4,23 @@ import { expandScheduleEntries } from '../src/core.js';
 
 const args = parseArgs(process.argv.slice(2));
 
-if (!args.schedule || !args.owner || !args.repo || !args.token) {
-  console.error('Usage: node ./scripts/publish-schedule.mjs --schedule ./schedule.json --owner <owner> --repo <repo> --branch <branch> --token <token> [--author-name <name>] [--author-email <email>]');
+if (!args.schedule || !args.token) {
+  console.error('Usage: node ./scripts/publish-schedule.mjs --schedule ./schedule.json --token <token> [--owner <owner>] [--repo <repo>] [--branch <branch>] [--author-name <name>] [--author-email <email>]');
   process.exit(1);
 }
 
 const schedule = JSON.parse(await fs.readFile(args.schedule, 'utf8'));
+const owner = args.owner || schedule.repository?.owner;
+const repo = args.repo || schedule.repository?.repo;
 const branch = args.branch || schedule.repository?.branch || 'main';
-const authorName = args['author-name'] || schedule.username || args.owner;
-const authorEmail = args['author-email'] || `${args.owner}@users.noreply.github.com`;
+
+if (!owner || !repo) {
+  console.error('The schedule must include repository owner/repo, or you must pass --owner and --repo.');
+  process.exit(1);
+}
+
+const authorName = args['author-name'] || schedule.username || owner;
+const authorEmail = args['author-email'] || `${owner}@users.noreply.github.com`;
 const entries = expandScheduleEntries(schedule.entries || []);
 
 if (!entries.length) {
@@ -20,29 +28,29 @@ if (!entries.length) {
   process.exit(0);
 }
 
-let headSha = await getRefSha({ owner: args.owner, repo: args.repo, branch, token: args.token });
+let headSha = await getRefSha({ owner, repo, branch, token: args.token });
 
 for (const [index, entry] of entries.entries()) {
-  const { treeSha } = await getCommit({ owner: args.owner, repo: args.repo, sha: headSha, token: args.token });
+  const { treeSha } = await getCommit({ owner, repo, sha: headSha, token: args.token });
   const commitDate = buildCommitDate(entry.date, entry.sequence);
   const path = `.github-page-as-paint/${entry.date}-${String(entry.sequence).padStart(2, '0')}-${crypto.randomUUID().slice(0, 8)}.txt`;
   const blobSha = await createBlob({
-    owner: args.owner,
-    repo: args.repo,
+    owner,
+    repo,
     token: args.token,
     content: randomText(),
   });
   const nextTreeSha = await createTree({
-    owner: args.owner,
-    repo: args.repo,
+    owner,
+    repo,
     token: args.token,
     baseTree: treeSha,
     path,
     blobSha,
   });
   headSha = await createCommitAndAdvanceRef({
-    owner: args.owner,
-    repo: args.repo,
+    owner,
+    repo,
     branch,
     token: args.token,
     parentSha: headSha,
@@ -57,7 +65,7 @@ for (const [index, entry] of entries.entries()) {
   console.log(`Created commit ${index + 1}/${entries.length} for ${entry.date} (${path})`);
 }
 
-console.log(`Published ${entries.length} commit(s) to ${args.owner}/${args.repo}@${branch}.`);
+console.log(`Published ${entries.length} commit(s) to ${owner}/${repo}@${branch}.`);
 
 function parseArgs(values) {
   return values.reduce((accumulator, value, index, all) => {
@@ -68,9 +76,9 @@ function parseArgs(values) {
 }
 
 function buildCommitDate(date, sequence) {
-  const hours = 9 + Math.min(sequence - 1, 8);
-  const minutes = (sequence * 11) % 60;
-  return `${date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00Z`;
+  const commitDate = new Date(`${date}T09:00:00Z`);
+  commitDate.setUTCMinutes(commitDate.getUTCMinutes() + (sequence - 1) * 7);
+  return commitDate.toISOString().replace('.000Z', 'Z');
 }
 
 function randomText() {

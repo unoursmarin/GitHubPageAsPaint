@@ -12,13 +12,12 @@ Paint a GitHub-style contribution grid with your real history and plan the weeks
 ## Run locally
 
 ```bash
-npm install
 npm run serve
 ```
 
 Then open `http://localhost:4173` and:
 
-1. enter your GitHub username, personal access token, and target repository
+1. enter your GitHub username and target repository
 2. load the grid
 3. click the future cells until they reach the intensity you want
 4. download `schedule.json`
