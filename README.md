@@ -26,7 +26,7 @@ Then open `http://localhost:4173` and:
 5. publish the plan:
 
 ```bash
-node ./scripts/publish-schedule.mjs --schedule ./schedule.json --owner <owner> --repo <repo> --branch <branch> --token <token>
+node ./scripts/publish-schedule.mjs --schedule ./schedule.json --username <username> --owner <owner> --repo <repo> --branch <branch> --token <token>
 ```
 
-The publisher creates tiny text files inside `.github-page-as-paint/` and commits them at the scheduled dates.
+The publisher creates tiny text files inside `.github-page-as-paint/` and commits them at the scheduled dates. Before publishing, it checks how many contributions are already visible for the user on each scheduled day and only creates the missing commits needed to reach the requested count.

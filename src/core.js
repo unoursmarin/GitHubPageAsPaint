@@ -103,3 +103,16 @@ export function expandScheduleEntries(entries) {
     })),
   );
 }
+
+export function subtractPublishedContributions(entries, publishedEntries) {
+  const publishedCountByDate = new Map(
+    publishedEntries.map((entry) => [entry.date, entry.count || 0]),
+  );
+
+  return entries
+    .map((entry) => ({
+      ...entry,
+      count: Math.max(0, entry.count - (publishedCountByDate.get(entry.date) ?? 0)),
+    }))
+    .filter((entry) => entry.count > 0);
+}

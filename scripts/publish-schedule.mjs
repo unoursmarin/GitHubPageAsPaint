@@ -1,12 +1,12 @@
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
-import { expandScheduleEntries } from '../src/core.js';
+import { expandScheduleEntries, subtractPublishedContributions } from '../src/core.js';
 import { buildCommitDate } from '../src/publisher.js';
 
 const args = parseArgs(process.argv.slice(2));
 
 if (!args.schedule || !args.token) {
-  console.error('Usage: node ./scripts/publish-schedule.mjs --schedule ./schedule.json --token <token> [--owner <owner>] [--repo <repo>] [--branch <branch>] [--author-name <name>] [--author-email <email>]');
+  console.error('Usage: node ./scripts/publish-schedule.mjs --schedule ./schedule.json --token <token> [--username <username>] [--owner <owner>] [--repo <repo>] [--branch <branch>] [--author-name <name>] [--author-email <email>]');
   process.exit(1);
 }
 
@@ -14,6 +14,7 @@ const schedule = JSON.parse(await fs.readFile(args.schedule, 'utf8'));
 const owner = args.owner || schedule.repository?.owner;
 const repo = args.repo || schedule.repository?.repo;
 const branch = args.branch || schedule.repository?.branch || 'main';
+const username = args.username || schedule.username;
 
 if (!owner || !repo) {
   console.error('The schedule must include repository owner/repo, or you must pass --owner and --repo.');
@@ -22,10 +23,23 @@ if (!owner || !repo) {
 
 const authorName = args['author-name'] || schedule.username || owner;
 const authorEmail = args['author-email'] || `${owner}@users.noreply.github.com`;
-const entries = expandScheduleEntries(schedule.entries || []);
+const plannedEntries = schedule.entries || [];
+
+if (!plannedEntries.length) {
+  console.log('Schedule is empty, nothing to publish.');
+  process.exit(0);
+}
+
+const publishedEntries = username ? await getContributionEntries(username) : [];
+const remainingEntries = subtractPublishedContributions(plannedEntries, publishedEntries);
+const entries = expandScheduleEntries(remainingEntries);
+
+if (!username) {
+  console.warn('Schedule username missing, skipping the existing-contribution check.');
+}
 
 if (!entries.length) {
-  console.log('Schedule is empty, nothing to publish.');
+  console.log('All scheduled contributions are already satisfied, nothing to publish.');
   process.exit(0);
 }
 
@@ -87,6 +101,48 @@ function parseArgs(values) {
 
 function randomText() {
   return crypto.randomBytes(24).toString('base64url');
+}
+
+async function getContributionEntries(username) {
+  const response = await fetch(`https://github.com/users/${encodeURIComponent(username)}/contributions`, {
+    headers: {
+      'User-Agent': 'GitHubPageAsPaint/1.0',
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Unable to load contributions for ${username}: GitHub responded with ${response.status}: ${text}`);
+  }
+
+  return parseContributionHtml(await response.text());
+}
+
+function parseContributionHtml(html) {
+  const tooltipById = new Map(
+    [...html.matchAll(/<tool-tip[^>]*for="([^"]+)"[^>]*>([^<]+)<\/tool-tip>/g)].map((match) => [
+      match[1],
+      match[2],
+    ]),
+  );
+  const titleById = new Map(
+    [...html.matchAll(/<(?:rect|td)[^>]*id="([^"]+)"[^>]*>[\s\S]*?<title>([^<]+)<\/title>[\s\S]*?<\/(?:rect|td)>/g)].map(
+      (match) => [match[1], match[2]],
+    ),
+  );
+  const pattern = /<(?:rect|td)[^>]*data-date="([^"]+)"[^>]*id="([^"]+)"[^>]*data-level="(\d)"[^>]*>/g;
+  const entries = [];
+
+  for (const match of html.matchAll(pattern)) {
+    const [, date, id] = match;
+    const tooltip = tooltipById.get(id) || titleById.get(id) || '';
+    const countMatch = tooltip.match(/([\d,]+)\s+contribution/i);
+    const count = countMatch ? Number(countMatch[1].replaceAll(',', '')) : 0;
+
+    entries.push({ date, count });
+  }
+
+  return entries;
 }
 
 async function getRefSha({ owner, repo, branch, token }) {

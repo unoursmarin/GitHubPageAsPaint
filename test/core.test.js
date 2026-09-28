@@ -8,6 +8,7 @@ import {
   expandScheduleEntries,
   HISTORICAL_WEEKS,
   serializePlan,
+  subtractPublishedContributions,
 } from '../src/core.js';
 import { buildCommitDate } from '../src/publisher.js';
 
@@ -88,6 +89,20 @@ test('expandScheduleEntries repeats each day according to the requested count', 
     { date: '2026-02-01', sequence: 1 },
     { date: '2026-02-01', sequence: 2 },
     { date: '2026-02-02', sequence: 1 },
+  ]);
+});
+
+test('subtractPublishedContributions only keeps the missing commits per day', () => {
+  assert.deepEqual(subtractPublishedContributions([
+    { date: '2026-02-01', count: 20 },
+    { date: '2026-02-02', count: 4 },
+    { date: '2026-02-03', count: 2 },
+  ], [
+    { date: '2026-02-01', count: 4 },
+    { date: '2026-02-02', count: 4 },
+    { date: '2026-02-03', count: 3 },
+  ]), [
+    { date: '2026-02-01', count: 16 },
   ]);
 });
 
