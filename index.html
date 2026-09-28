@@ -5,96 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GitHub Page As Paint</title>
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./dist/app.css" />
   </head>
   <body>
-    <main class="layout">
-      <section class="panel intro">
-        <p class="eyebrow">GitHubPageAsPaint</p>
-        <h1>Paint your next contribution map</h1>
-        <p>
-          Load your GitHub contribution history in purple, paint future days in green,
-          and export a schedule that can be published later with your personal access token.
-        </p>
-      </section>
-
-      <section class="panel controls">
-        <form id="planner-form" class="controls-grid">
-          <label>
-            GitHub username
-            <input id="username" name="username" type="text" placeholder="octocat" required />
-          </label>
-          <label>
-            Repository owner
-            <input id="owner" name="owner" type="text" placeholder="octocat" required />
-          </label>
-          <label>
-            Repository name
-            <input id="repo" name="repo" type="text" placeholder="portfolio-drawings" required />
-          </label>
-          <label>
-            Branch
-            <input id="branch" name="branch" type="text" value="main" />
-          </label>
-          <label>
-            Future weeks to paint
-            <input id="future-weeks" name="futureWeeks" type="number" min="4" max="52" value="20" />
-          </label>
-          <div class="actions">
-            <button type="submit">Load contribution grid</button>
-            <button id="download-plan" type="button">Download schedule</button>
-          </div>
-        </form>
-
-        <div class="legend">
-          <span>Past contributions</span>
-          <div class="chips purple-scale" aria-hidden="true">
-            <span class="chip level-0 purple"></span>
-            <span class="chip level-1 purple"></span>
-            <span class="chip level-2 purple"></span>
-            <span class="chip level-3 purple"></span>
-            <span class="chip level-4 purple"></span>
-          </div>
-          <span>Future plan</span>
-          <div class="chips green-scale" aria-hidden="true">
-            <span class="chip level-0 green"></span>
-            <span class="chip level-1 green"></span>
-            <span class="chip level-2 green"></span>
-            <span class="chip level-3 green"></span>
-            <span class="chip level-4 green"></span>
-          </div>
-          <p class="hint">Click a future cell several times to cycle the intensity and planned commit count.</p>
-        </div>
-      </section>
-
-      <section class="panel board">
-        <div class="board-header">
-          <div>
-            <h2>Contribution planner</h2>
-            <p id="summary">Load your profile to see the last 53 weeks and paint the weeks ahead.</p>
-          </div>
-          <div id="status" class="status" role="status" aria-live="polite"></div>
-        </div>
-        <div id="grid-wrapper" class="grid-wrapper"></div>
-      </section>
-
-      <section class="panel automation">
-        <h2>Automation</h2>
-        <ol>
-          <li>Load the grid and paint the future dates you want.</li>
-          <li>Download the generated <code>schedule.json</code>.</li>
-          <li>
-            Run
-            <code>node ./scripts/publish-schedule.mjs --schedule ./schedule.json --owner &lt;owner&gt; --repo &lt;repo&gt; --branch &lt;branch&gt; --token &lt;token&gt;</code>
-            to publish random text commits for the selected dates.
-          </li>
-        </ol>
-        <p class="hint">
-          The script creates tiny text files with dated commits through the GitHub API.
-          Future-dated commits depend on GitHub’s contribution rules for the target account.
-        </p>
-      </section>
-    </main>
-
-    <script type="module" src="./src/app.js"></script>
+    <div id="app"></div>
+    <script type="module" src="./dist/app.js"></script>
   </body>
 </html>
