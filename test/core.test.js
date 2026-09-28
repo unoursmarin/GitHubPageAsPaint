@@ -98,7 +98,8 @@ test('subtractPublishedContributions only keeps the missing commits per day', ()
     { date: '2026-02-02', count: 4 },
     { date: '2026-02-03', count: 2 },
   ], [
-    { date: '2026-02-01', count: 4 },
+    { date: '2026-02-01', count: 1 },
+    { date: '2026-02-01', count: 3 },
     { date: '2026-02-02', count: 4 },
     { date: '2026-02-03', count: 3 },
   ]), [

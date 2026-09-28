@@ -105,9 +105,10 @@ export function expandScheduleEntries(entries) {
 }
 
 export function subtractPublishedContributions(entries, publishedEntries) {
-  const publishedCountByDate = new Map(
-    publishedEntries.map((entry) => [entry.date, entry.count || 0]),
-  );
+  const publishedCountByDate = publishedEntries.reduce((counts, entry) => {
+    counts.set(entry.date, (counts.get(entry.date) ?? 0) + (entry.count || 0));
+    return counts;
+  }, new Map());
 
   return entries
     .map((entry) => ({
