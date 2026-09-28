@@ -52,21 +52,12 @@ export function validatePlanPayload(body, now = new Date()) {
   return { plan, futureWeeks };
 }
 
-export function validateTokenPayload(body) {
-  const token = isPlainObject(body) && typeof body.token === 'string' ? body.token.trim() : '';
+export function validateToken(value) {
+  const token = typeof value === 'string' ? value.trim() : '';
   if (!TOKEN_PATTERN.test(token)) {
     throw new ValidationError('This does not look like a GitHub token.');
   }
   return token;
-}
-
-export function validateTargetPayload(body) {
-  const owner = isPlainObject(body) && typeof body.owner === 'string' ? body.owner : '';
-  const repo = isPlainObject(body) && typeof body.repo === 'string' ? body.repo : '';
-  if (!GITHUB_NAME_PATTERN.test(owner) || !GITHUB_NAME_PATTERN.test(repo)) {
-    throw new ValidationError('Invalid repository owner or name.');
-  }
-  return { owner, repo, folder: validateFolder(body.folder) };
 }
 
 /** A relative folder inside the target repository, e.g. "art/2026". Never escapes the repo or touches git/CI config. */
@@ -93,12 +84,4 @@ export function validateFolder(value) {
   }
 
   return segments.join('/');
-}
-
-export function validateFlowPayload(body) {
-  const flowId = isPlainObject(body) && typeof body.flowId === 'string' ? body.flowId : '';
-  if (!/^[0-9a-f-]{36}$/.test(flowId)) {
-    throw new ValidationError('Invalid sign-in flow id.');
-  }
-  return flowId;
 }

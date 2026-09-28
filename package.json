@@ -1,26 +1,29 @@
 {
-  "name": "githubpageaspaint",
+  "name": "git-to-paint",
   "version": "1.0.0",
-  "description": "Paint future GitHub contributions and automate scheduled text commits.",
+  "description": "Paint your GitHub contribution wall from GitHub Pages; your own repository commits the drawing daily.",
   "type": "module",
   "scripts": {
-    "build:client": "esbuild src/app.js --bundle --format=esm --loader:.js=jsx --loader:.woff2=file --loader:.woff=file --outfile=dist/app.js",
-    "serve": "npm run build:client && node --env-file-if-exists=.env ./server.mjs",
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/build.mjs --serve",
     "test": "node --test"
   },
   "keywords": [
     "github",
     "contributions",
-    "planner"
+    "github-actions",
+    "github-pages"
   ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
+    "@noble/hashes": "^2.4.0",
     "react": "^19.3.0",
     "react-activity-calendar": "^3.2.1",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "esbuild": "^0.28.2"

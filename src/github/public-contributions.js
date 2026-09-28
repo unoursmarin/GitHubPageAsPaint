@@ -1,9 +1,9 @@
-import { GitHubError } from './github-client.mjs';
+import { GitHubError } from './client.js';
 
 /** Signed-out fallback: reads the public contribution fragment github.com renders for any user. */
 export async function fetchPublicContributions(username, fetchImpl = fetch) {
   const upstream = await fetchImpl(`https://github.com/users/${encodeURIComponent(username)}/contributions`, {
-    headers: { 'User-Agent': 'GitHubPageAsPaint/1.0' },
+    headers: { 'User-Agent': 'GitToPaint' },
   });
   if (!upstream.ok) {
     throw new GitHubError(`GitHub responded with ${upstream.status}.`, upstream.status);
