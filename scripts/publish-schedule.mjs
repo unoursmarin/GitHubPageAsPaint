@@ -20,6 +20,10 @@ if (!owner || !repo) {
   console.error('The schedule must include repository owner/repo, or you must pass --owner and --repo.');
   process.exit(1);
 }
+if (!username) {
+  console.error('The schedule must include username, or you must pass --username so existing contributions can be checked before publishing.');
+  process.exit(1);
+}
 
 const authorName = args['author-name'] || schedule.username || owner;
 const authorEmail = args['author-email'] || `${owner}@users.noreply.github.com`;
@@ -33,10 +37,6 @@ if (!plannedEntries.length) {
 const publishedEntries = username ? await getContributionEntries({ username, token: args.token, plannedEntries }) : [];
 const remainingEntries = subtractPublishedContributions(plannedEntries, publishedEntries);
 const entries = expandScheduleEntries(remainingEntries);
-
-if (!username) {
-  console.warn('Schedule username missing, skipping the existing-contribution check.');
-}
 
 if (!entries.length) {
   console.log('All scheduled contributions are already satisfied, nothing to publish.');
@@ -138,7 +138,11 @@ async function getContributionEntries({ username, token, plannedEntries }) {
     throw new Error(`Unable to load contributions for ${username}: ${payload.errors.map((error) => error.message).join('; ')}`);
   }
 
-  const weeks = payload.data?.user?.contributionsCollection?.contributionCalendar?.weeks;
+  if (!payload.data?.user) {
+    throw new Error(`Unable to load contributions: GitHub user "${username}" was not found or is not accessible.`);
+  }
+
+  const weeks = payload.data.user.contributionsCollection?.contributionCalendar?.weeks;
   if (!weeks) {
     throw new Error(`Unable to load contributions for ${username}.`);
   }
