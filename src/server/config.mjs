@@ -10,7 +10,7 @@ function boundedInt(value, fallback, min, max) {
 
 export function loadConfig(env = process.env, rootDir = process.cwd()) {
   return {
-    host: '127.0.0.1',
+    host: env.HOST?.trim() || '127.0.0.1',
     port: boundedInt(env.PORT, 4173, 1, 65535),
     clientId: env.GITHUB_CLIENT_ID?.trim() || null,
     scopes: env.GITHUB_SCOPES?.trim() || DEFAULT_SCOPES,
@@ -18,5 +18,8 @@ export function loadConfig(env = process.env, rootDir = process.cwd()) {
     dataDir: path.resolve(rootDir, env.DATA_DIR?.trim() || '.data'),
     syncIntervalMinutes: boundedInt(env.SYNC_INTERVAL_MINUTES, 60, 5, 1440),
     maxCommitsPerRun: boundedInt(env.MAX_COMMITS_PER_RUN, 60, 1, 200),
+    // GitHub's calendar can lag behind new commits, so each run re-checks a few times with a pause.
+    maxChecksPerRun: boundedInt(env.MAX_CHECKS_PER_RUN, 6, 2, 20),
+    recheckDelaySeconds: boundedInt(env.RECHECK_DELAY_SECONDS, 90, 0, 900),
   };
 }

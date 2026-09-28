@@ -81,8 +81,27 @@ export function reconcilePlan({ plan, days, today }) {
       if (actual.level > target) {
         return { ...base, status: 'above', commitsToAdd: 0 };
       }
-      return { ...base, status: 'pending', commitsToAdd: Math.max(1, thresholds[target] - actual.count) };
+      return { ...base, status: 'pending', commitsToAdd: safeCommitCount(thresholds, target, actual.count) };
     });
+}
+
+// Commits needed to reach the target threshold, capped so the day stays below the next level.
+function safeCommitCount(thresholds, target, count) {
+  const needed = thresholds[target] - count;
+  const ceiling = target < MAX_LEVEL ? thresholds[target + 1] - 1 - count : Infinity;
+  return Math.max(1, Math.min(needed, ceiling));
+}
+
+/**
+ * Approaches each pending day in halves so a mis-estimated threshold, or the
+ * quartile shift caused by our own commits, can be corrected on the next check.
+ */
+export function cautiousStep(results) {
+  return results.map((result) =>
+    result.status === 'pending'
+      ? { ...result, commitsToAdd: Math.max(1, Math.ceil(result.commitsToAdd / 2)) }
+      : result,
+  );
 }
 
 export function summarizeResults(results) {

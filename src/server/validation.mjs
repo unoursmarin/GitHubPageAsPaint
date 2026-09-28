@@ -6,6 +6,10 @@ const MAX_PLAN_ENTRIES = 800;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TOKEN_PATTERN = /^[A-Za-z0-9_]{20,255}$/;
 const GITHUB_NAME_PATTERN = /^[A-Za-z0-9_.-]{1,100}$/;
+const FOLDER_SEGMENT_PATTERN = /^[A-Za-z0-9_.-]{1,64}$/;
+const MAX_FOLDER_LENGTH = 200;
+const MAX_FOLDER_DEPTH = 5;
+const RESERVED_ROOT_FOLDERS = new Set(['.git', '.github']);
 
 export class ValidationError extends Error {}
 
@@ -62,7 +66,33 @@ export function validateTargetPayload(body) {
   if (!GITHUB_NAME_PATTERN.test(owner) || !GITHUB_NAME_PATTERN.test(repo)) {
     throw new ValidationError('Invalid repository owner or name.');
   }
-  return { owner, repo };
+  return { owner, repo, folder: validateFolder(body.folder) };
+}
+
+/** A relative folder inside the target repository, e.g. "art/2026". Never escapes the repo or touches git/CI config. */
+export function validateFolder(value) {
+  const folder = typeof value === 'string' ? value.trim().replace(/^\/+|\/+$/g, '') : '';
+  if (!folder) {
+    throw new ValidationError('Choose a folder for the generated files.');
+  }
+  if (folder.length > MAX_FOLDER_LENGTH) {
+    throw new ValidationError(`The folder path must be at most ${MAX_FOLDER_LENGTH} characters.`);
+  }
+
+  const segments = folder.split('/');
+  if (segments.length > MAX_FOLDER_DEPTH) {
+    throw new ValidationError(`The folder can be at most ${MAX_FOLDER_DEPTH} levels deep.`);
+  }
+  for (const segment of segments) {
+    if (!FOLDER_SEGMENT_PATTERN.test(segment) || segment === '.' || segment === '..') {
+      throw new ValidationError('Folder names may only use letters, digits, ".", "_" and "-".');
+    }
+  }
+  if (RESERVED_ROOT_FOLDERS.has(segments[0].toLowerCase())) {
+    throw new ValidationError(`"${segments[0]}" is reserved, pick another folder.`);
+  }
+
+  return segments.join('/');
 }
 
 export function validateFlowPayload(body) {

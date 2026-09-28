@@ -121,6 +121,24 @@ export function createGitHubClient({ fetchImpl = fetch } = {}) {
       return data.tree.sha;
     },
 
+    async createBlob(token, owner, repo, content) {
+      const { data } = await request(token, `/repos/${owner}/${repo}/git/blobs`, {
+        method: 'POST',
+        operation: 'upload a file',
+        body: { content, encoding: 'utf-8' },
+      });
+      return data.sha;
+    },
+
+    async createTree(token, owner, repo, { baseTree, path, blobSha }) {
+      const { data } = await request(token, `/repos/${owner}/${repo}/git/trees`, {
+        method: 'POST',
+        operation: 'add the file to the repository tree',
+        body: { base_tree: baseTree, tree: [{ path, mode: '100644', type: 'blob', sha: blobSha }] },
+      });
+      return data.sha;
+    },
+
     async createCommit(token, owner, repo, commit) {
       const { data } = await request(token, `/repos/${owner}/${repo}/git/commits`, {
         method: 'POST',
@@ -138,6 +156,16 @@ export function createGitHubClient({ fetchImpl = fetch } = {}) {
       });
     },
   };
+}
+
+/**
+ * Classic and OAuth tokens list their scopes; fine-grained tokens send no header,
+ * so their write access is checked per repository through `permissions.push`.
+ */
+export function hasRepoWriteScope(scopeHeader) {
+  if (!scopeHeader) return true;
+  const scopes = scopeHeader.split(',').map((scope) => scope.trim());
+  return scopes.includes('repo') || scopes.includes('public_repo');
 }
 
 // Only GitHub's short "message" field is surfaced; raw bodies can be large or echo request data.
