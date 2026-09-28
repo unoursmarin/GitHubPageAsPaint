@@ -159,7 +159,7 @@ function contributionRange(entries) {
   const dates = entries.map((entry) => entry.date).sort((left, right) => left.localeCompare(right));
   return {
     from: `${dates[0]}T00:00:00Z`,
-    to: `${dates.at(-1)}T23:59:59Z`,
+    to: `${dates[dates.length - 1]}T23:59:59Z`,
   };
 }
 
