@@ -103,3 +103,21 @@ export function expandScheduleEntries(entries) {
     })),
   );
 }
+
+export function subtractPublishedContributions(entries, publishedEntries) {
+  const plannedCountByDate = entries.reduce((counts, entry) => {
+    counts.set(entry.date, (counts.get(entry.date) ?? 0) + (entry.count || 0));
+    return counts;
+  }, new Map());
+  const publishedCountByDate = publishedEntries.reduce((counts, entry) => {
+    counts.set(entry.date, (counts.get(entry.date) ?? 0) + (entry.count || 0));
+    return counts;
+  }, new Map());
+
+  return [...plannedCountByDate.entries()]
+    .map(([date, count]) => ({
+      date,
+      count: Math.max(0, count - (publishedCountByDate.get(date) ?? 0)),
+    }))
+    .filter((entry) => entry.count > 0);
+}

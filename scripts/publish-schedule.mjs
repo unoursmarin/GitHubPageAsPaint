@@ -1,12 +1,12 @@
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
-import { expandScheduleEntries } from '../src/core.js';
+import { expandScheduleEntries, subtractPublishedContributions } from '../src/core.js';
 import { buildCommitDate } from '../src/publisher.js';
 
 const args = parseArgs(process.argv.slice(2));
 
 if (!args.schedule || !args.token) {
-  console.error('Usage: node ./scripts/publish-schedule.mjs --schedule ./schedule.json --token <token> [--owner <owner>] [--repo <repo>] [--branch <branch>] [--author-name <name>] [--author-email <email>]');
+  console.error('Usage: node ./scripts/publish-schedule.mjs --schedule ./schedule.json --token <token> [--username <username>] [--owner <owner>] [--repo <repo>] [--branch <branch>] [--author-name <name>] [--author-email <email>]');
   process.exit(1);
 }
 
@@ -14,18 +14,32 @@ const schedule = JSON.parse(await fs.readFile(args.schedule, 'utf8'));
 const owner = args.owner || schedule.repository?.owner;
 const repo = args.repo || schedule.repository?.repo;
 const branch = args.branch || schedule.repository?.branch || 'main';
+const username = args.username || schedule.username;
 
 if (!owner || !repo) {
   console.error('The schedule must include repository owner/repo, or you must pass --owner and --repo.');
   process.exit(1);
 }
+if (!username) {
+  console.error('The schedule must include username, or you must pass --username so existing contributions can be checked before publishing.');
+  process.exit(1);
+}
 
-const authorName = args['author-name'] || schedule.username || owner;
-const authorEmail = args['author-email'] || `${owner}@users.noreply.github.com`;
-const entries = expandScheduleEntries(schedule.entries || []);
+const authorName = args['author-name'] || username;
+const authorEmail = args['author-email'] || `${username}@users.noreply.github.com`;
+const plannedEntries = schedule.entries || [];
+
+if (!plannedEntries.length) {
+  console.log('Schedule is empty, nothing to publish.');
+  process.exit(0);
+}
+
+const publishedEntries = username ? await getContributionEntries({ username, token: args.token, plannedEntries }) : [];
+const remainingEntries = subtractPublishedContributions(plannedEntries, publishedEntries);
+const entries = expandScheduleEntries(remainingEntries);
 
 if (!entries.length) {
-  console.log('Schedule is empty, nothing to publish.');
+  console.log('All scheduled contributions are already satisfied, nothing to publish.');
   process.exit(0);
 }
 
@@ -87,6 +101,70 @@ function parseArgs(values) {
 
 function randomText() {
   return crypto.randomBytes(24).toString('base64url');
+}
+
+async function getContributionEntries({ username, token, plannedEntries }) {
+  const { from, to } = contributionRange(plannedEntries);
+  const payload = await githubRequest('https://api.github.com/graphql', {
+    method: 'POST',
+    operation: `load contribution calendar for ${username}`,
+    token,
+    body: {
+      query: `
+        query ContributionCalendar($login: String!, $from: DateTime!, $to: DateTime!) {
+          user(login: $login) {
+            contributionsCollection(from: $from, to: $to) {
+              contributionCalendar {
+                weeks {
+                  contributionDays {
+                    date
+                    contributionCount
+                  }
+                }
+              }
+            }
+          }
+        }
+      `,
+      variables: {
+        login: username,
+        from,
+        to,
+      },
+    },
+  });
+
+  if (payload.errors?.length) {
+    throw new Error(`Unable to load contributions for ${username}.`);
+  }
+
+  if (!payload.data?.user) {
+    throw new Error(`Unable to load contributions: GitHub user "${username}" was not found or is not accessible.`);
+  }
+
+  const weeks = payload.data.user.contributionsCollection?.contributionCalendar?.weeks;
+  if (!weeks) {
+    throw new Error(`Unable to load contributions for ${username}.`);
+  }
+
+  return weeks.flatMap((week) =>
+    week.contributionDays.map((day) => ({
+      date: day.date,
+      count: day.contributionCount,
+    })),
+  );
+}
+
+function contributionRange(entries) {
+  const { firstDate, lastDate } = entries.reduce((range, entry) => ({
+    firstDate: !range.firstDate || entry.date.localeCompare(range.firstDate) < 0 ? entry.date : range.firstDate,
+    lastDate: !range.lastDate || entry.date.localeCompare(range.lastDate) > 0 ? entry.date : range.lastDate,
+  }), { firstDate: '', lastDate: '' });
+
+  return {
+    from: `${firstDate}T00:00:00Z`,
+    to: `${lastDate}T23:59:59Z`,
+  };
 }
 
 async function getRefSha({ owner, repo, branch, token }) {
