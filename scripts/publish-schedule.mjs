@@ -156,10 +156,14 @@ async function getContributionEntries({ username, token, plannedEntries }) {
 }
 
 function contributionRange(entries) {
-  const dates = entries.map((entry) => entry.date).sort((left, right) => left.localeCompare(right));
+  const { firstDate, lastDate } = entries.reduce((range, entry) => ({
+    firstDate: !range.firstDate || entry.date.localeCompare(range.firstDate) < 0 ? entry.date : range.firstDate,
+    lastDate: !range.lastDate || entry.date.localeCompare(range.lastDate) > 0 ? entry.date : range.lastDate,
+  }), { firstDate: '', lastDate: '' });
+
   return {
-    from: `${dates[0]}T00:00:00Z`,
-    to: `${dates[dates.length - 1]}T23:59:59Z`,
+    from: `${firstDate}T00:00:00Z`,
+    to: `${lastDate}T23:59:59Z`,
   };
 }
 
