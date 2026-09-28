@@ -94,7 +94,8 @@ test('expandScheduleEntries repeats each day according to the requested count', 
 
 test('subtractPublishedContributions only keeps the missing commits per day', () => {
   assert.deepEqual(subtractPublishedContributions([
-    { date: '2026-02-01', count: 20 },
+    { date: '2026-02-01', count: 10 },
+    { date: '2026-02-01', count: 10 },
     { date: '2026-02-02', count: 4 },
     { date: '2026-02-03', count: 2 },
   ], [

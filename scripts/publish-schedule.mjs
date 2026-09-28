@@ -30,7 +30,7 @@ if (!plannedEntries.length) {
   process.exit(0);
 }
 
-const publishedEntries = username ? await getContributionEntries({ username, token: args.token }) : [];
+const publishedEntries = username ? await getContributionEntries({ username, token: args.token, plannedEntries }) : [];
 const remainingEntries = subtractPublishedContributions(plannedEntries, publishedEntries);
 const entries = expandScheduleEntries(remainingEntries);
 
@@ -103,47 +103,60 @@ function randomText() {
   return crypto.randomBytes(24).toString('base64url');
 }
 
-async function getContributionEntries({ username, token }) {
-  const response = await fetch(`https://github.com/users/${encodeURIComponent(username)}/contributions`, {
-    headers: {
-      Authorization: 'Bearer ' + token,
-      'User-Agent': 'GitHubPageAsPaint/1.0',
+async function getContributionEntries({ username, token, plannedEntries }) {
+  const { from, to } = contributionRange(plannedEntries);
+  const payload = await githubRequest('https://api.github.com/graphql', {
+    method: 'POST',
+    operation: `load contribution calendar for ${username}`,
+    token,
+    body: {
+      query: `
+        query ContributionCalendar($login: String!, $from: DateTime!, $to: DateTime!) {
+          user(login: $login) {
+            contributionsCollection(from: $from, to: $to) {
+              contributionCalendar {
+                weeks {
+                  contributionDays {
+                    date
+                    contributionCount
+                  }
+                }
+              }
+            }
+          }
+        }
+      `,
+      variables: {
+        login: username,
+        from,
+        to,
+      },
     },
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Unable to load contributions for ${username}: GitHub responded with ${response.status}: ${text}`);
+  if (payload.errors?.length) {
+    throw new Error(`Unable to load contributions for ${username}: ${payload.errors.map((error) => error.message).join('; ')}`);
   }
 
-  return parseContributionHtml(await response.text());
+  const weeks = payload.data?.user?.contributionsCollection?.contributionCalendar?.weeks;
+  if (!weeks) {
+    throw new Error(`Unable to load contributions for ${username}.`);
+  }
+
+  return weeks.flatMap((week) =>
+    week.contributionDays.map((day) => ({
+      date: day.date,
+      count: day.contributionCount,
+    })),
+  );
 }
 
-function parseContributionHtml(html) {
-  const tooltipById = new Map(
-    [...html.matchAll(/<tool-tip[^>]*for="([^"]+)"[^>]*>([^<]+)<\/tool-tip>/g)].map((match) => [
-      match[1],
-      match[2],
-    ]),
-  );
-  const titleById = new Map(
-    [...html.matchAll(/<(?:rect|td)[^>]*id="([^"]+)"[^>]*>[\s\S]*?<title>([^<]+)<\/title>[\s\S]*?<\/(?:rect|td)>/g)].map(
-      (match) => [match[1], match[2]],
-    ),
-  );
-  const pattern = /<(?:rect|td)[^>]*data-date="([^"]+)"[^>]*id="([^"]+)"[^>]*data-level="(\d)"[^>]*>/g;
-  const entries = [];
-
-  for (const match of html.matchAll(pattern)) {
-    const [, date, id] = match;
-    const tooltip = tooltipById.get(id) || titleById.get(id) || '';
-    const countMatch = tooltip.match(/([\d,]+)\s+contributions?/i);
-    const count = countMatch ? Number(countMatch[1].replaceAll(',', '')) : 0;
-
-    entries.push({ date, count });
-  }
-
-  return entries;
+function contributionRange(entries) {
+  const dates = entries.map((entry) => entry.date).sort((left, right) => left.localeCompare(right));
+  return {
+    from: `${dates[0]}T00:00:00Z`,
+    to: `${dates.at(-1)}T23:59:59Z`,
+  };
 }
 
 async function getRefSha({ owner, repo, branch, token }) {
