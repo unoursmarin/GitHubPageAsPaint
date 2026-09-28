@@ -30,7 +30,7 @@ if (!plannedEntries.length) {
   process.exit(0);
 }
 
-const publishedEntries = username ? await getContributionEntries(username) : [];
+const publishedEntries = username ? await getContributionEntries({ username, token: args.token }) : [];
 const remainingEntries = subtractPublishedContributions(plannedEntries, publishedEntries);
 const entries = expandScheduleEntries(remainingEntries);
 
@@ -103,9 +103,10 @@ function randomText() {
   return crypto.randomBytes(24).toString('base64url');
 }
 
-async function getContributionEntries(username) {
+async function getContributionEntries({ username, token }) {
   const response = await fetch(`https://github.com/users/${encodeURIComponent(username)}/contributions`, {
     headers: {
+      Authorization: 'Bearer ' + token,
       'User-Agent': 'GitHubPageAsPaint/1.0',
     },
   });
@@ -136,7 +137,7 @@ function parseContributionHtml(html) {
   for (const match of html.matchAll(pattern)) {
     const [, date, id] = match;
     const tooltip = tooltipById.get(id) || titleById.get(id) || '';
-    const countMatch = tooltip.match(/([\d,]+)\s+contribution/i);
+    const countMatch = tooltip.match(/([\d,]+)\s+contributions?/i);
     const count = countMatch ? Number(countMatch[1].replaceAll(',', '')) : 0;
 
     entries.push({ date, count });
