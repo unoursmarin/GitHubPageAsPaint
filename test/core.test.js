@@ -1,16 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
-  buildPlannerGrid,
-  buildSchedulePayload,
-  cycleFutureIntensity,
-  expandScheduleEntries,
-  HISTORICAL_WEEKS,
-  serializePlan,
-  subtractPublishedContributions,
-} from '../src/core.js';
-import { buildCommitDate } from '../src/publisher.js';
+import { buildPlannerGrid, cycleFutureIntensity, HISTORICAL_WEEKS } from '../src/core.js';
 
 test('cycleFutureIntensity wraps after the darkest level', () => {
   assert.equal(cycleFutureIntensity(0), 1);
@@ -42,74 +33,4 @@ test('buildPlannerGrid uses futureWeeks as the number of week columns with futur
 
   assert.equal(weeks.length, HISTORICAL_WEEKS + 1);
   assert.equal(futureWeekColumns.length, 2);
-});
-
-test('serializePlan sorts days and removes empty selections', () => {
-  const plan = new Map([
-    ['2026-03-01', 0],
-    ['2026-02-14', 3],
-    ['2026-02-01', 1],
-  ]);
-
-  assert.deepEqual(serializePlan(plan), [
-    { date: '2026-02-01', count: 1 },
-    { date: '2026-02-14', count: 3 },
-  ]);
-});
-
-test('buildSchedulePayload keeps repository metadata and serialized entries', () => {
-  const payload = buildSchedulePayload({
-    username: 'octocat',
-    owner: 'octocat',
-    repo: 'paint',
-    branch: 'main',
-    plan: new Map([
-      ['2026-02-14', 3],
-      ['2026-02-01', 1],
-    ]),
-  });
-
-  assert.equal(payload.username, 'octocat');
-  assert.deepEqual(payload.repository, {
-    owner: 'octocat',
-    repo: 'paint',
-    branch: 'main',
-  });
-  assert.deepEqual(payload.entries, [
-    { date: '2026-02-01', count: 1 },
-    { date: '2026-02-14', count: 3 },
-  ]);
-});
-
-test('expandScheduleEntries repeats each day according to the requested count', () => {
-  assert.deepEqual(expandScheduleEntries([
-    { date: '2026-02-01', count: 2 },
-    { date: '2026-02-02', count: 1 },
-  ]), [
-    { date: '2026-02-01', sequence: 1 },
-    { date: '2026-02-01', sequence: 2 },
-    { date: '2026-02-02', sequence: 1 },
-  ]);
-});
-
-test('subtractPublishedContributions only keeps the missing commits per day', () => {
-  assert.deepEqual(subtractPublishedContributions([
-    { date: '2026-02-01', count: 10 },
-    { date: '2026-02-01', count: 10 },
-    { date: '2026-02-02', count: 4 },
-    { date: '2026-02-03', count: 2 },
-  ], [
-    { date: '2026-02-01', count: 1 },
-    { date: '2026-02-01', count: 3 },
-    { date: '2026-02-02', count: 4 },
-    { date: '2026-02-03', count: 3 },
-  ]), [
-    { date: '2026-02-01', count: 16 },
-  ]);
-});
-
-test('buildCommitDate starts at 09:00Z and increments by seven minutes', () => {
-  assert.equal(buildCommitDate('2026-02-14', 1), '2026-02-14T09:00:00Z');
-  assert.equal(buildCommitDate('2026-02-14', 2), '2026-02-14T09:07:00Z');
-  assert.equal(buildCommitDate('2026-02-14', 10), '2026-02-14T10:03:00Z');
 });

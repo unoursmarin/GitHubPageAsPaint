@@ -1,2 +1,6 @@
 node_modules/
 dist/
+_site/
+# Leftovers of the former local server: they hold an encrypted token and its key.
+.data/
+.env
