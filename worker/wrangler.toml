@@ -6,4 +6,4 @@ workers_dev = true
 [vars]
 ALLOWED_ORIGIN = "https://unoursmarin.github.io"
 # Public client id of the GitToPaint OAuth App (set after creating it).
-GITHUB_CLIENT_ID = ""
+GITHUB_CLIENT_ID = "Ov23liw6rI74FmtSvy3Q"
