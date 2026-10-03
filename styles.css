@@ -427,6 +427,22 @@ select {
   gap: 1rem;
 }
 
+.oauth button:not(.secondary) {
+  justify-self: start;
+}
+
+.device-code {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.device-code .code {
+  font-size: 2rem;
+  letter-spacing: 0.18em;
+  user-select: all;
+}
+
 .token-option summary {
   width: fit-content;
   font-size: 0.875rem;

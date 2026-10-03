@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import 'react-activity-calendar/tooltips.css';
 import '@fontsource-variable/geist';
@@ -9,7 +9,9 @@ import { RepoPanel } from './components/RepoPanel.js';
 import { RunsPanel } from './components/RunsPanel.js';
 import { SignInPanel } from './components/SignInPanel.js';
 import { cycleFutureIntensity } from './core.js';
+import { DeviceFlowError, createDeviceFlow } from './github/device-flow.js';
 import { createGitHubClient } from './github/client.js';
+import { OAUTH_CLIENT_ID, OAUTH_RELAY_URL, OAUTH_SCOPES, isOAuthConfigured } from './shared/oauth-config.js';
 import { CONFIG_PATH, DEFAULT_FOLDER, ENGINE_PATH, buildArtConfig, parseArtConfig } from './shared/art-config.js';
 import { validateFolder, validateToken } from './shared/validation.js';
 import { ENGINE_VERSION, readEngineVersion } from './shared/version.js';
@@ -19,6 +21,9 @@ import { reconcilePlan } from './sync/reconcile.js';
 import { loadRememberedRepo, loadToken, rememberRepo, saveToken } from './ui/storage.js';
 
 const client = createGitHubClient();
+const deviceFlow = isOAuthConfigured()
+  ? createDeviceFlow({ clientId: OAUTH_CLIENT_ID, relayUrl: OAUTH_RELAY_URL, scopes: OAUTH_SCOPES })
+  : null;
 const DEVICE_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 const DEFAULT_FUTURE_WEEKS = 20;
 const CALENDAR_DAYS = 364;
@@ -45,6 +50,8 @@ function App() {
   const [viewer, setViewer] = useState(null);
   const [phase, setPhase] = useState('signed-out');
   const [signInError, setSignInError] = useState('');
+  const [devicePending, setDevicePending] = useState(null);
+  const deviceAbort = useRef(null);
   const [location, setLocation] = useState({ repo: null, others: [], hasConfig: false, engineVersion: null });
   const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [savedSnapshot, setSavedSnapshot] = useState(null);
@@ -110,6 +117,27 @@ function App() {
       setBusy(false);
     }
   }, [loadCalendar, openRepo]);
+
+  const startOAuth = useCallback(async () => {
+    setSignInError('');
+    const abort = new AbortController();
+    deviceAbort.current = abort;
+    try {
+      const flow = await deviceFlow.start();
+      setDevicePending({ userCode: flow.userCode, verificationUri: flow.verificationUri });
+      const accessToken = await deviceFlow.waitForToken(flow, { signal: abort.signal });
+      setDevicePending(null);
+      await signIn(accessToken);
+    } catch (error) {
+      setDevicePending(null);
+      if (!abort.signal.aborted) setSignInError(error instanceof DeviceFlowError ? error.message : 'GitHub sign-in failed.');
+    }
+  }, [signIn]);
+
+  const cancelOAuth = () => {
+    deviceAbort.current?.abort();
+    setDevicePending(null);
+  };
 
   useEffect(() => {
     const stored = loadToken();
@@ -205,7 +233,13 @@ function App() {
           <h2 id="account-heading">Account</h2>
           <p>Connect with a personal access token.</p>
         </div>
-        <SignInPanel viewer={viewer} busy={busy} error={signInError} onSignIn={signIn} onSignOut={signOut} />
+        <SignInPanel
+          viewer={viewer}
+          busy={busy}
+          error={signInError} onSignIn={signIn}
+          onSignOut={signOut}
+          oauth={{ available: Boolean(deviceFlow), pending: devicePending, onStart: startOAuth, onCancel: cancelOAuth }}
+        />
       </section>
 
       {signedIn && (

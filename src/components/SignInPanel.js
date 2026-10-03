@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 const CLASSIC_TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=public_repo,workflow&description=GitToPaint';
 const FINE_GRAINED_TOKEN_URL = 'https://github.com/settings/personal-access-tokens/new';
 
-/** Personal access token sign-in. The token never leaves the browser except towards api.github.com. */
-export function SignInPanel({ viewer, busy, error, onSignIn, onSignOut }) {
+/** Sign in with GitHub (device flow) or with a personal access token. Tokens only go to api.github.com. */
+export function SignInPanel({ viewer, busy, error, onSignIn, onSignOut, oauth }) {
   const [token, setToken] = useState('');
 
   if (viewer) {
@@ -26,8 +26,8 @@ export function SignInPanel({ viewer, busy, error, onSignIn, onSignOut }) {
     setToken('');
   }
 
-  return (
-    <div className="signin">
+  const tokenForm = (
+    <>
       <form className="token-form" onSubmit={submit}>
         <label>
           Personal access token
@@ -43,8 +43,6 @@ export function SignInPanel({ viewer, busy, error, onSignIn, onSignOut }) {
         </label>
         <button type="submit" disabled={busy || !token.trim()}>{busy ? 'Connecting…' : 'Connect'}</button>
       </form>
-      {error && <p className="status inline" data-tone="error" role="alert">{error}</p>}
-
       <details className="token-option">
         <summary>Which token do I need?</summary>
         <div className="token-help">
@@ -68,6 +66,34 @@ export function SignInPanel({ viewer, busy, error, onSignIn, onSignOut }) {
           </p>
         </div>
       </details>
+    </>
+  );
+
+  return (
+    <div className="signin">
+      {oauth?.available && (
+        <div className="oauth">
+          {oauth.pending ? (
+            <div className="device-code" role="status">
+              <p>
+                Enter this code on <a href={oauth.pending.verificationUri} target="_blank" rel="noreferrer">github.com/login/device</a>:
+              </p>
+              <strong className="mono code">{oauth.pending.userCode}</strong>
+              <p className="muted">Waiting for your approval…</p>
+              <button className="secondary" type="button" onClick={oauth.onCancel}>Cancel</button>
+            </div>
+          ) : (
+            <button type="button" onClick={oauth.onStart} disabled={busy}>Sign in with GitHub</button>
+          )}
+        </div>
+      )}
+      {error && <p className="status inline" data-tone="error" role="alert">{error}</p>}
+      {oauth?.available ? (
+        <details className="token-option">
+          <summary>Use a personal access token instead</summary>
+          {tokenForm}
+        </details>
+      ) : tokenForm}
     </div>
   );
 }
