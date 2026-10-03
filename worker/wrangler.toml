@@ -1,0 +1,9 @@
+name = "gittopaint-oauth"
+main = "proxy.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGIN = "https://unoursmarin.github.io"
+# Public client id of the GitToPaint OAuth App (set after creating it).
+GITHUB_CLIENT_ID = ""
